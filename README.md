@@ -1,6 +1,6 @@
 # GNotifier
 
-HTTP endpoint that accepts JSON and forwards the `message` field to a Telegram channel using a bot. Built with [Ktor](https://ktor.io/), packaged as a Docker image, published to GitHub Container Registry on every push to `main`.
+HTTP endpoint that accepts JSON and forwards the `message` field to a Telegram channel using a bot. Built with [Ktor](https://ktor.io/), packaged as a Docker image, published to GitHub Container Registry on every push to `master`.
 
 Stack: **Kotlin 2.3.20**, **Ktor 3.4.1** (Gradle plugin pins server/client deps), **Gradle 9.4.1**, JVM **21**, Docker runtime **eclipse-temurin:21-jre-noble**.
 
@@ -65,9 +65,9 @@ docker run --rm -p 8080:8080 \
 
 ## GitHub Container Registry
 
-On push to `main`, [.github/workflows/publish.yml](.github/workflows/publish.yml) builds and pushes:
+On push to `master`, [.github/workflows/publish.yml](.github/workflows/publish.yml) builds and pushes:
 
-- `ghcr.io/<owner>/<repo>:main`
+- `ghcr.io/<owner>/<repo>:master`
 - `ghcr.io/<owner>/<repo>:sha-<short>`
 
 Enable **Packages** for the repo if needed. For a **private** image, create a GitHub PAT with `read:packages` and use it in Coolify as the registry password (username = GitHub username).
@@ -75,7 +75,7 @@ Enable **Packages** for the repo if needed. For a **private** image, create a Gi
 ## Coolify
 
 1. New resource: **Docker Image**.
-2. Image: `ghcr.io/<your-github-user>/<repo>:main` (lowercase).
+2. Image: `ghcr.io/<your-github-user>/<repo>:master` (lowercase).
 3. Registry: `https://ghcr.io`, user + PAT with `read:packages`.
 4. Set the four environment variables above (and `PORT` if the platform assigns one).
 5. Enable **watch / redeploy on new image** if your Coolify version supports it for private registries.

@@ -3,7 +3,8 @@ name: Publish Docker image
 on:
   push:
     branches:
-      - main
+      - master
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -29,7 +30,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=raw,value=main
+            type=raw,value=master
             type=sha,prefix=sha-
 
       - name: Build and push
