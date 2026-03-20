@@ -24,6 +24,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json")
     implementation("io.ktor:ktor-client-core")
     implementation("io.ktor:ktor-client-java")
+    runtimeOnly("ch.qos.logback:logback-classic:1.5.16")
 }
 
 kotlin {

@@ -8,6 +8,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.JsonConvertException
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.ApplicationCall
+import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.install
 import io.ktor.server.application.log
 import io.ktor.server.engine.embeddedServer
@@ -19,10 +20,14 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.launch
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 
 internal const val MAX_BODY_BYTES = 8192
+
+private val log = LoggerFactory.getLogger("io.eugene239.gnotifier")
 
 fun main() {
     val config = Config.fromEnv()
@@ -41,6 +46,14 @@ fun main() {
             exception<Throwable> { call, cause ->
                 call.application.log.error("Unhandled failure", cause)
                 call.respond(HttpStatusCode.InternalServerError)
+            }
+        }
+        monitor.subscribe(ApplicationStarted) {
+            launch {
+                when (TelegramNotifier.send(httpClient, config, "Gnotifier Started")) {
+                    SendResult.Success -> { }
+                    else -> log.warn("Startup Telegram notification failed")
+                }
             }
         }
         routing {

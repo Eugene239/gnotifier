@@ -26,6 +26,10 @@ Telegram messages are capped at **4096** characters (longer input is truncated).
 
 The bot must be able to post in the channel (e.g. add the bot as an **administrator** of the channel).
 
+Logs go to **stdout** (Logback). Telegram failures and exceptions are logged with a short API response snippet where applicable.
+
+On each process start, the service sends **`Gnotifier Started`** to the configured Telegram chat (same path as `/notify`). If that send fails, a warning is written to the logs.
+
 ## Local run
 
 ```bash
