@@ -1,0 +1,9 @@
+.gradle
+build
+.idea
+*.iml
+.git
+.gitignore
+telemetry-stack
+.cursor
+**/.DS_Store
