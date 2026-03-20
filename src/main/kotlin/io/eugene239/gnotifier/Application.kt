@@ -144,3 +144,12 @@ private fun ApplicationCall.validateBearer(config: Config): Boolean {
     val token = header.removePrefix(prefix).trim()
     return token == config.notifyBearerToken
 }
+
+internal const val LOG_TEXT_MAX = 2048
+
+internal fun truncateForLog(text: String, max: Int = LOG_TEXT_MAX): String =
+    if (text.length <= max) {
+        text
+    } else {
+        text.take(max) + "... [truncated, total ${text.length} chars]"
+    }

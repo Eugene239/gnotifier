@@ -2,7 +2,7 @@
 
 FROM eclipse-temurin:21-jdk-noble AS build
 WORKDIR /src
-COPY gradlew gradlew.bat settings.gradle.kts build.gradle.kts ./
+COPY gradlew gradlew.bat settings.gradle.kts build.gradle.kts gradle.properties ./
 COPY gradle gradle
 COPY src src
 RUN chmod +x gradlew \
