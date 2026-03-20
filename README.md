@@ -1,6 +1,6 @@
 # GNotifier
 
-HTTP endpoint that accepts JSON and forwards the `message` field to a Telegram channel using a bot. Built with [Ktor](https://ktor.io/), packaged as a Docker image, published to GitHub Container Registry on every push to `master`.
+HTTP endpoint that accepts a notification body and forwards it to a Telegram channel using a bot (JSON, plain text, or form field `message`). Built with [Ktor](https://ktor.io/), packaged as a Docker image, published to GitHub Container Registry on every push to `master`.
 
 Stack: **Kotlin 2.3.20**, **Ktor 3.4.1** (Gradle plugin pins server/client deps), **Gradle 9.4.1**, JVM **21**, Docker runtime **eclipse-temurin:21-jre-noble**.
 
@@ -9,9 +9,13 @@ Stack: **Kotlin 2.3.20**, **Ktor 3.4.1** (Gradle plugin pins server/client deps)
 `POST /notify`
 
 - Header: `Authorization: Bearer <NOTIFY_BEARER_TOKEN>` (required).
-- Body: `application/json` with a single field **`message`** (string), UTF-8. Example: `{"message":"Hello"}`. Unknown JSON keys are ignored. Max **8192** characters for `message`; request body size should stay within the same limit. Empty `message` returns `400`.
+- Body (pick one **Content-Type**):
+  - **`application/json`**: `{"message":"Hello"}`. Keys and string values must use **double quotes** in JSON. Unknown keys are ignored.
+  - **`text/plain`**: the **entire body** is the message (UTF-8).
+  - **`application/x-www-form-urlencoded`**: form field **`message`** (e.g. `message=Hello`).
+- Max **8192** characters for the message; empty message returns `400`.
 - Success: `204 No Content`.
-- Errors: `401` (bad/missing token), `400` (invalid JSON, missing fields, empty `message`, or Telegram rejected content), `413` (`message` or body too large), `415` (not `application/json`), `502` (Telegram unreachable or error).
+- Errors: `401` (bad/missing token), `400` (invalid JSON, missing `message` in form, empty message, or Telegram rejected content), `413` (body too large), `415` (unsupported content type), `502` (Telegram unreachable or error).
 
 Telegram messages are capped at **4096** characters (longer input is truncated).
 
@@ -41,11 +45,22 @@ export NOTIFY_BEARER_TOKEN="..."
 
 Example:
 
+JSON:
+
 ```bash
 curl -sS -X POST "http://127.0.0.1:8080/notify" \
   -H "Authorization: Bearer $NOTIFY_BEARER_TOKEN" \
   -H "Content-Type: application/json; charset=utf-8" \
   -d '{"message":"Hello from GNotifier"}'
+```
+
+Plain text (no JSON):
+
+```bash
+curl -sS -X POST "http://127.0.0.1:8080/notify" \
+  -H "Authorization: Bearer $NOTIFY_BEARER_TOKEN" \
+  -H "Content-Type: text/plain; charset=utf-8" \
+  --data-binary "Hello from GNotifier"
 ```
 
 ## Docker

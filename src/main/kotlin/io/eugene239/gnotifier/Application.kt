@@ -13,10 +13,14 @@ import io.ktor.server.application.install
 import io.ktor.server.application.log
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.contentType
+import io.ktor.server.request.httpMethod
 import io.ktor.server.request.receive
+import io.ktor.server.request.receiveParameters
+import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
@@ -63,25 +67,47 @@ fun main() {
                     return@post
                 }
                 val ct = call.request.contentType()
-                if (!ct.match(ContentType.Application.Json)) {
-                    call.respond(HttpStatusCode.UnsupportedMediaType)
-                    return@post
-                }
                 val len = call.request.headers[HttpHeaders.ContentLength]?.toLongOrNull()
                 if (len != null && len > MAX_BODY_BYTES) {
                     call.respond(HttpStatusCode.PayloadTooLarge)
                     return@post
                 }
-                val payload = try {
-                    call.receive<NotifyRequest>()
-                } catch (e: SerializationException) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@post
-                } catch (e: JsonConvertException) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@post
+                val text: String = when {
+                    ct.match(ContentType.Application.Json) -> {
+                        val payload = try {
+                            call.receive<NotifyRequest>()
+                        } catch (e: BadRequestException) {
+                            call.respond(HttpStatusCode.BadRequest)
+                            return@post
+                        } catch (e: SerializationException) {
+                            call.respond(HttpStatusCode.BadRequest)
+                            return@post
+                        } catch (e: JsonConvertException) {
+                            call.respond(HttpStatusCode.BadRequest)
+                            return@post
+                        }
+                        payload.message
+                    }
+                    ct.match(ContentType.Text.Plain) -> {
+                        val body = call.receiveText()
+                        if (body.length > MAX_BODY_BYTES) {
+                            call.respond(HttpStatusCode.PayloadTooLarge)
+                            return@post
+                        }
+                        body
+                    }
+                    ct.match(ContentType.Application.FormUrlEncoded) -> {
+                        val message = call.receiveParameters()["message"] ?: run {
+                            call.respond(HttpStatusCode.BadRequest)
+                            return@post
+                        }
+                        message
+                    }
+                    else -> {
+                        call.respond(HttpStatusCode.UnsupportedMediaType)
+                        return@post
+                    }
                 }
-                val text = payload.message
                 if (text.isEmpty()) {
                     call.respond(HttpStatusCode.BadRequest)
                     return@post
@@ -90,6 +116,17 @@ fun main() {
                     call.respond(HttpStatusCode.PayloadTooLarge)
                     return@post
                 }
+                val clientIp = call.request.headers["X-Forwarded-For"]?.split(",")?.firstOrNull()?.trim()
+                    ?: call.request.local.remoteHost
+                log.info(
+                    "Incoming notify: method={} uri={} remote={} contentType={} contentLength={} message={}",
+                    call.request.httpMethod.value,
+                    call.request.local.uri,
+                    clientIp,
+                    ct,
+                    len?.toString() ?: "chunked/unknown",
+                    truncateForLog(text),
+                )
                 when (TelegramNotifier.send(httpClient, config, text)) {
                     SendResult.Success -> call.respond(HttpStatusCode.NoContent)
                     SendResult.BadRequest -> call.respond(HttpStatusCode.BadRequest)

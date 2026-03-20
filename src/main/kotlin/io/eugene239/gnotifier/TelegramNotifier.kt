@@ -31,6 +31,11 @@ object TelegramNotifier {
         val url =
             "https://api.telegram.org/bot${config.telegramBotToken}/sendMessage"
         val body = buildFormBody(config.telegramChatId, payload)
+        log.info(
+            "Telegram request: POST https://api.telegram.org/bot***/sendMessage textLength={} text={}",
+            payload.length,
+            truncateForLog(payload),
+        )
         return try {
             val response = client.post(url) {
                 header(HttpHeaders.ContentType, ContentType.Application.FormUrlEncoded.toString())
