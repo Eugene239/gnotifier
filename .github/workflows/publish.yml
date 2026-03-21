@@ -49,11 +49,14 @@ jobs:
             BUILD_DATE=${{ steps.builddate.outputs.date }}
 
       - name: Trigger deploy webhook
-        if: ${{ secrets.DEPLOY_WEBHOOK != '' }}
         env:
           WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK }}
           DEPLOY_WEBHOOK_TOKEN: ${{ secrets.DEPLOY_WEBHOOK_TOKEN }}
         run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "DEPLOY_WEBHOOK not set, skipping."
+            exit 0
+          fi
           if [ -n "$DEPLOY_WEBHOOK_TOKEN" ]; then
             curl -fsSL -X GET "$WEBHOOK_URL" -H "Authorization: Bearer $DEPLOY_WEBHOOK_TOKEN"
           else
