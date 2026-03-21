@@ -1,3 +1,8 @@
+import java.io.File
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+
 plugins {
     kotlin("jvm") version "2.3.20"
     kotlin("plugin.serialization") version "2.3.20"
@@ -6,6 +11,41 @@ plugins {
 
 group = "io.eugene239.gnotifier"
 version = "1.0.0"
+
+fun gitShortRev(dir: File): String =
+    try {
+        val p = ProcessBuilder("git", "rev-parse", "--short", "HEAD")
+            .directory(dir)
+            .redirectErrorStream(true)
+            .start()
+        p.inputStream.bufferedReader().readText().trim().ifEmpty { "unknown" }
+    } catch (_: Exception) {
+        "unknown"
+    }
+
+tasks.register("generateBuildInfo") {
+    val out = layout.buildDirectory.dir("generated/resources/main")
+    outputs.dir(out)
+    doLast {
+        val dir = out.get().asFile
+        dir.mkdirs()
+        var sha = (project.findProperty("buildInfoSha") as String?)
+            ?: System.getenv("GIT_SHA")
+            ?: gitShortRev(rootDir)
+        if (sha.length > 7) {
+            sha = sha.take(7)
+        }
+        val dateStr = (project.findProperty("buildInfoDate") as String?)
+            ?: System.getenv("BUILD_DATE")
+            ?: ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyyMMddHH"))
+        val version = "$dateStr-$sha"
+        File(dir, "build-info.properties").writeText("version=$version\n")
+    }
+}
+
+tasks.named("processResources") {
+    dependsOn("generateBuildInfo")
+}
 
 application {
     mainClass.set("io.eugene239.gnotifier.ApplicationKt")
@@ -29,4 +69,12 @@ dependencies {
 
 kotlin {
     jvmToolchain(21)
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDir(layout.buildDirectory.dir("generated/resources/main"))
+        }
+    }
 }

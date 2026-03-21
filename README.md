@@ -6,6 +6,11 @@ Stack: **Kotlin 2.3.20**, **Ktor 3.4.1** (Gradle plugin pins server/client deps)
 
 ## API
 
+`GET /health`
+
+- No authentication. **HTTP 200** with **JSON** (suitable for **Coolify** health checks — e.g. `https://<host>/health`).
+- Response: `{"status":"ok","uptimeMs":12345,"version":"2025032014-a1b2c3d"}` — `uptimeMs` is JVM uptime in milliseconds; `version` is **build timestamp (UTC `YYYYMMddHH`)** + **short Git SHA** (from the build; local `./gradlew` uses the current repo when `.git` is present).
+
 `POST /notify`
 
 - Header: `Authorization: Bearer <NOTIFY_BEARER_TOKEN>` (required).
@@ -18,6 +23,31 @@ Stack: **Kotlin 2.3.20**, **Ktor 3.4.1** (Gradle plugin pins server/client deps)
 - Errors: `401` (bad/missing token), `400` (invalid JSON, missing `message` in form, empty message, or Telegram rejected content), `413` (body too large), `415` (unsupported content type), `502` (Telegram unreachable or error).
 
 Telegram messages are capped at **4096** characters (longer input is truncated).
+
+### Example request (shape)
+
+**Server (URL):** `https://<your-host>/notify` — use your public URL or `http://<ip>:<port>/notify`.
+
+**Headers:**
+
+```http
+Authorization: Bearer <NOTIFY_BEARER_TOKEN>
+Content-Type: application/json; charset=utf-8
+```
+
+Replace `<NOTIFY_BEARER_TOKEN>` with the value from env (never commit it).
+
+**Body (JSON):**
+
+```json
+{"message":"Your notification text"}
+```
+
+**Windows cmd** (escape inner quotes in `-d`):
+
+```cmd
+curl.exe -sS -X POST "https://<your-host>/notify" -H "Authorization: Bearer <NOTIFY_BEARER_TOKEN>" -H "Content-Type: application/json" -d "{\"message\":\"Your notification text\"}"
+```
 
 ## Environment variables
 
@@ -90,6 +120,15 @@ On push to `master`, [.github/workflows/publish.yml](.github/workflows/publish.y
 - `ghcr.io/<owner>/<repo>:sha-<short>`
 
 Enable **Packages** for the repo if needed. For a **private** image, create a GitHub PAT with `read:packages` and use it in Coolify as the registry password (username = GitHub username).
+
+Optional GitHub **Actions** secrets (after a successful image push):
+
+| Secret | Purpose |
+|--------|---------|
+| **`DEPLOY_WEBHOOK`** | Full deploy webhook URL (e.g. `https://<coolify>/api/v1/deploy?uuid=…&force=false`). If set, the workflow runs **`GET`** on this URL. |
+| **`DEPLOY_WEBHOOK_TOKEN`** | **Bearer token** when the webhook is marked *auth required* (e.g. Coolify). If empty, the request is sent **without** `Authorization`. |
+
+For **Coolify** with “Deploy Webhook (auth required)”: enable **API access** in Coolify (**Settings → Configuration → Advanced → API Access**), create an **API token** with **Deploy** permission (**Keys & Tokens → API Tokens**), put the webhook URL in **`DEPLOY_WEBHOOK`** and the token in **`DEPLOY_WEBHOOK_TOKEN`**. Official flow: [GitHub Actions | Coolify](https://coolify.io/docs/applications/ci-cd/github/actions).
 
 ## Coolify
 

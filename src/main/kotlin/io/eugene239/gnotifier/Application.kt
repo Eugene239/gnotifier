@@ -22,12 +22,14 @@ import io.ktor.server.request.receive
 import io.ktor.server.request.receiveParameters
 import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
+import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
+import java.lang.management.ManagementFactory
 
 internal const val MAX_BODY_BYTES = 8192
 
@@ -61,6 +63,15 @@ fun main() {
             }
         }
         routing {
+            get("/health") {
+                call.respond(
+                    HealthResponse(
+                        status = "ok",
+                        uptimeMs = ManagementFactory.getRuntimeMXBean().uptime,
+                        version = BuildInfo.version,
+                    ),
+                )
+            }
             post("/notify") {
                 if (!call.validateBearer(config)) {
                     call.respond(HttpStatusCode.Unauthorized)
