@@ -4,6 +4,6 @@ build
 *.iml
 .git
 .gitignore
-telemetry-stack
 .cursor
 **/.DS_Store
+local.properties

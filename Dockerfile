@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM eclipse-temurin:21-jdk-noble AS build
+FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /src
 ARG GIT_SHA=unknown
 ARG BUILD_DATE=
@@ -14,10 +14,10 @@ RUN chmod +x gradlew \
     && export BUILD_DATE \
     && ./gradlew buildFatJar --no-daemon -PbuildInfoSha="${GIT_SHA}" -PbuildInfoDate="${BUILD_DATE}"
 
-FROM eclipse-temurin:21-jre-noble
+FROM bellsoft/liberica-openjre-alpine-musl:21
 WORKDIR /app
-RUN useradd --system --uid 10001 --shell /usr/sbin/nologin appuser
+RUN addgroup -S app && adduser -S -u 10001 -G app appuser
 COPY --from=build /src/build/libs/gnotifier-all.jar /app/app.jar
 USER 10001
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+ENTRYPOINT ["java", "-XX:+UseSerialGC", "-Xms32m", "-Xmx128m", "-jar", "/app/app.jar"]
